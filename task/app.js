@@ -3,8 +3,10 @@
 
   const STORAGE_KEY = "digitalPlannerV1";
   const HABIT_ROWS = 10;
-  const TODO_DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
-  const TRACKER_DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+  const TODO_DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+  const TRACKER_DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+  /** Remap column index when upgrading from Sun-first to Mon-first layout. */
+  const SUN_FIRST_COL_TO_MON_FIRST = [6, 0, 1, 2, 3, 4, 5];
 
   const monthPickerEl = document.getElementById("monthPicker");
   const weekLabelEl = document.getElementById("weekLabel");
@@ -12,8 +14,21 @@
   const todoGridEl = document.getElementById("todoGrid");
   const habitBodyEl = document.getElementById("habitBody");
   const noteAreaEl = document.getElementById("noteArea");
+  
+  const settingsModal = document.getElementById("settingsModal");
+  const openSettingsBtn = document.getElementById("openSettings");
+  const closeSettingsBtn = document.getElementById("closeSettings");
+  const resetSettingsBtn = document.getElementById("resetSettings");
+  const settingCardColor = document.getElementById("settingCardColor");
+  const settingFontColor = document.getElementById("settingFontColor");
+  const settingBtnBg = document.getElementById("settingBtnBg");
+  const settingBtnText = document.getElementById("settingBtnText");
+  const settingBgDesktop = document.getElementById("settingBgDesktop");
+  const settingBgMobile = document.getElementById("settingBgMobile");
+  const settingHabitBg = document.getElementById("settingHabitBg");
+  const settingHabitFont = document.getElementById("settingHabitFont");
 
-  /** @type {{ weekMondayISO: string, habitNames: string[], weekInput: string }} */
+  /** @type {{ weekMondayISO: string, habitNames: string[], weekInput: string, settings: any }} */
   let state = loadState();
 
   function loadState() {
@@ -34,6 +49,7 @@
       weekMondayISO: toISODate(monday),
       habitNames: Array.from({ length: HABIT_ROWS }, () => ""),
       weekInput: "",
+      settings: {}
     };
   }
 
@@ -52,6 +68,7 @@
       weekMondayISO: mondayISO,
       habitNames,
       weekInput: typeof parsed.weekInput === "string" ? parsed.weekInput : "",
+      settings: typeof parsed.settings === "object" && parsed.settings ? parsed.settings : {}
     };
   }
 
@@ -147,15 +164,52 @@
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return {};
       const parsed = JSON.parse(raw);
-      return parsed && typeof parsed === "object" ? parsed : {};
+      if (!parsed || typeof parsed !== "object") return {};
+      migrateHabitChecksToMonFirst(parsed);
+      return parsed;
     } catch {
       return {};
     }
   }
 
+  function migrateHabitChecksToMonFirst(bundle) {
+    if (bundle.habitChecksMonFirst) return;
+    const legacy = bundle.habitChecksByWeek;
+    if (legacy && typeof legacy === "object") {
+      const next = {};
+      Object.keys(legacy).forEach((weekId) => {
+        const map = legacy[weekId];
+        if (!map || typeof map !== "object") return;
+        const out = {};
+        Object.keys(map).forEach((key) => {
+          const parts = key.split("-");
+          if (parts.length !== 2) return;
+          const r = parseInt(parts[0], 10);
+          const oldC = parseInt(parts[1], 10);
+          if (!Number.isFinite(r) || !Number.isFinite(oldC) || oldC < 0 || oldC > 6) return;
+          out[`${r}-${SUN_FIRST_COL_TO_MON_FIRST[oldC]}`] = map[key];
+        });
+        next[weekId] = out;
+      });
+      bundle.habitChecksByWeek = next;
+    }
+    bundle.habitChecksMonFirst = true;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(bundle));
+  }
+
   function writeBundle(extra) {
     const bundle = { ...readBundle(), ...state, ...extra };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(bundle));
+  }
+
+  function normalizeTask(item) {
+    if (item && typeof item === "object" && item.text != null) {
+      return { text: String(item.text), done: !!item.done };
+    }
+    if (typeof item === "string") {
+      return { text: item, done: false };
+    }
+    return { text: "", done: false };
   }
 
   function getTodosForWeek(weekId) {
@@ -165,7 +219,9 @@
     const out = {};
     TODO_DAYS.forEach((day) => {
       const arr = weekTodos[day];
-      out[day] = Array.isArray(arr) ? arr.map(String) : [];
+      out[day] = Array.isArray(arr)
+        ? arr.map(normalizeTask).filter((t) => t.text.length > 0)
+        : [];
     });
     return out;
   }
@@ -257,12 +313,42 @@
       function redrawList() {
         list.innerHTML = "";
         const current = getTodosForWeek(weekId)[day] || [];
-        current.forEach((text, idx) => {
+        current.forEach((task, idx) => {
           const li = document.createElement("li");
+          li.className = "todo-item";
+
+          const inner = document.createElement("div");
+          inner.className = "todo-item__inner";
+          if (task.done) inner.classList.add("todo-item__inner--done");
+
           const span = document.createElement("span");
-          span.textContent = text;
+          span.className = "todo-item__text";
+          if (task.done) span.classList.add("todo-item__text--done");
+          span.textContent = task.text;
+
+          const actions = document.createElement("div");
+          actions.className = "todo-item__actions";
+
+          const doneBtn = document.createElement("button");
+          doneBtn.type = "button";
+          doneBtn.className = "todo-item__done";
+          doneBtn.textContent = "✔️";
+          doneBtn.setAttribute(
+            "aria-label",
+            task.done ? "Mark task as not done" : "Mark task as done"
+          );
+          if (task.done) doneBtn.classList.add("todo-item__done--active");
+          doneBtn.addEventListener("click", () => {
+            const next = getTodosForWeek(weekId);
+            const t = next[day][idx];
+            next[day][idx] = { ...t, done: !t.done };
+            setTodosForWeek(weekId, next);
+            redrawList();
+          });
+
           const del = document.createElement("button");
           del.type = "button";
+          del.className = "todo-item__remove";
           del.setAttribute("aria-label", "Remove task");
           del.textContent = "×";
           del.addEventListener("click", () => {
@@ -271,7 +357,10 @@
             setTodosForWeek(weekId, next);
             redrawList();
           });
-          li.append(span, del);
+
+          actions.append(doneBtn, del);
+          inner.append(span, actions);
+          li.appendChild(inner);
           list.appendChild(li);
         });
       }
@@ -281,7 +370,7 @@
         const text = input.value.trim();
         if (!text) return;
         const next = getTodosForWeek(weekId);
-        next[day] = [...(next[day] || []), text];
+        next[day] = [...(next[day] || []), { text, done: false }];
         setTodosForWeek(weekId, next);
         input.value = "";
         redrawList();
@@ -294,7 +383,16 @@
     });
   }
 
+  function syncHabitNamesFromBundle() {
+    const bundle = readBundle();
+    if (!Array.isArray(bundle.habitNames)) return;
+    const names = bundle.habitNames.map(String).slice(0, HABIT_ROWS);
+    while (names.length < HABIT_ROWS) names.push("");
+    state.habitNames = names.slice(0, HABIT_ROWS);
+  }
+
   function renderHabits() {
+    syncHabitNamesFromBundle();
     const { weekId } = getWeekData();
     const checks = getChecksForWeek(weekId);
     habitBodyEl.innerHTML = "";
@@ -339,10 +437,85 @@
 
   function renderAll() {
     state = normalizeState(state);
+    syncHabitNamesFromBundle();
+    applySettings();
     renderHeader();
     renderTodos();
     renderHabits();
     renderNote();
+  }
+
+  function applySettings() {
+    const s = state.settings || {};
+    const root = document.documentElement;
+    
+    if (s.cardColor) root.style.setProperty("--glass-bg", s.cardColor);
+    else root.style.removeProperty("--glass-bg");
+    
+    if (s.fontColor) {
+      root.style.setProperty("--ink", s.fontColor);
+      root.style.setProperty("--title", s.fontColor);
+      root.style.setProperty("--header-text", s.fontColor);
+    } else {
+      root.style.removeProperty("--ink");
+      root.style.removeProperty("--title");
+      root.style.removeProperty("--header-text");
+    }
+    
+    if (s.btnBg) root.style.setProperty("--btn-nav-bg", s.btnBg);
+    else root.style.removeProperty("--btn-nav-bg");
+    
+    if (s.btnText) root.style.setProperty("--btn-nav-text", s.btnText);
+    else root.style.removeProperty("--btn-nav-text");
+    
+    if (s.bgDesktop) root.style.setProperty("--bg-img-desktop", `url(${s.bgDesktop})`);
+    else root.style.removeProperty("--bg-img-desktop");
+    
+    if (s.bgMobile) root.style.setProperty("--bg-img-mobile", `url(${s.bgMobile})`);
+    else root.style.removeProperty("--bg-img-mobile");
+    
+    if (s.habitBg) root.style.setProperty("--habit-bg", s.habitBg);
+    else root.style.removeProperty("--habit-bg");
+    
+    if (s.habitFont) root.style.setProperty("--habit-font-color", s.habitFont);
+    else root.style.removeProperty("--habit-font-color");
+    
+    if (s.cardColor) settingCardColor.value = s.cardColor;
+    if (s.fontColor) settingFontColor.value = s.fontColor;
+    if (s.btnBg) settingBtnBg.value = s.btnBg;
+    if (s.btnText) settingBtnText.value = s.btnText;
+    if (s.habitBg) settingHabitBg.value = s.habitBg;
+    if (s.habitFont) settingHabitFont.value = s.habitFont;
+  }
+
+  function processImageFile(file, callback) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+         const canvas = document.createElement("canvas");
+         let width = img.width;
+         let height = img.height;
+         const max = 1920;
+         if (width > max || height > max) {
+            if (width > height) {
+              height = Math.round((height * max) / width);
+              width = max;
+            } else {
+              width = Math.round((width * max) / height);
+              height = max;
+            }
+         }
+         canvas.width = width;
+         canvas.height = height;
+         const ctx = canvas.getContext("2d");
+         ctx.drawImage(img, 0, 0, width, height);
+         callback(canvas.toDataURL("image/jpeg", 0.8));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
   }
 
   function flushNote() {
@@ -413,6 +586,110 @@
   noteAreaEl.addEventListener("input", () => {
     const { weekId } = getWeekData();
     setNoteForWeek(weekId, noteAreaEl.value);
+  });
+
+  // Settings Event Listeners
+  openSettingsBtn.addEventListener("click", () => {
+    settingsModal.classList.add("active");
+  });
+  
+  closeSettingsBtn.addEventListener("click", () => {
+    settingsModal.classList.remove("active");
+  });
+
+  // Close when clicking outside panel
+  settingsModal.addEventListener("click", (e) => {
+    if (e.target === settingsModal) {
+      settingsModal.classList.remove("active");
+    }
+  });
+
+  settingCardColor.addEventListener("input", (e) => {
+    state.settings = state.settings || {};
+    state.settings.cardColor = e.target.value;
+    applySettings();
+    saveState();
+  });
+  
+  settingFontColor.addEventListener("input", (e) => {
+    state.settings = state.settings || {};
+    state.settings.fontColor = e.target.value;
+    applySettings();
+    saveState();
+  });
+
+  settingBtnBg.addEventListener("input", (e) => {
+    state.settings = state.settings || {};
+    state.settings.btnBg = e.target.value;
+    applySettings();
+    saveState();
+  });
+
+  settingBtnText.addEventListener("input", (e) => {
+    state.settings = state.settings || {};
+    state.settings.btnText = e.target.value;
+    applySettings();
+    saveState();
+  });
+  
+  settingBgDesktop.addEventListener("change", (e) => {
+    processImageFile(e.target.files[0], (dataUrl) => {
+      state.settings = state.settings || {};
+      state.settings.bgDesktop = dataUrl;
+      applySettings();
+      try {
+        saveState();
+      } catch(err) {
+        alert("Image is too large to save! Try a smaller image.");
+        state.settings.bgDesktop = "";
+        applySettings();
+        saveState();
+      }
+    });
+  });
+
+  settingBgMobile.addEventListener("change", (e) => {
+    processImageFile(e.target.files[0], (dataUrl) => {
+      state.settings = state.settings || {};
+      state.settings.bgMobile = dataUrl;
+      applySettings();
+      try {
+        saveState();
+      } catch(err) {
+        alert("Image is too large to save! Try a smaller image.");
+        state.settings.bgMobile = "";
+        applySettings();
+        saveState();
+      }
+    });
+  });
+
+  settingHabitBg.addEventListener("input", (e) => {
+    state.settings = state.settings || {};
+    state.settings.habitBg = e.target.value;
+    applySettings();
+    saveState();
+  });
+
+  settingHabitFont.addEventListener("input", (e) => {
+    state.settings = state.settings || {};
+    state.settings.habitFont = e.target.value;
+    applySettings();
+    saveState();
+  });
+
+  resetSettingsBtn.addEventListener("click", () => {
+    state.settings = {};
+    settingCardColor.value = "#ffffff";
+    settingFontColor.value = "#0a0a0f";
+    settingBtnBg.value = "#ffffff";
+    settingBtnText.value = "#101620";
+    settingBgDesktop.value = "";
+    settingBgMobile.value = "";
+    settingHabitBg.value = "#ffffff";
+    settingHabitFont.value = "#0a0a0f";
+    applySettings();
+    saveState();
   });
 
   saveState();

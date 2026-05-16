@@ -35,6 +35,7 @@
             autocomplete="off"
           />
           <button type="button" class="btn btn--go" id="goWeek">Go</button>
+          <button type="button" class="btn btn--nav" id="openSettings" title="Settings">⋮</button>
         </div>
       </header>
 
@@ -55,13 +56,13 @@
                 <thead>
                   <tr>
                     <th class="habit-table__habits-col" scope="col">HABITS</th>
-                    <th scope="col">SUN</th>
                     <th scope="col">MON</th>
                     <th scope="col">TUE</th>
                     <th scope="col">WED</th>
                     <th scope="col">THU</th>
                     <th scope="col">FRI</th>
                     <th scope="col">SAT</th>
+                    <th scope="col">SUN</th>
                   </tr>
                 </thead>
                 <tbody id="habitBody"></tbody>
@@ -75,6 +76,51 @@
           </div>
         </section>
       </main>
+    </div>
+    <div class="settings-modal" id="settingsModal" aria-hidden="true">
+      <div class="settings-panel" role="dialog" aria-labelledby="settingsTitle">
+        <header class="settings-header">
+          <h2 class="settings-title" id="settingsTitle">Settings</h2>
+          <button type="button" class="settings-close" id="closeSettings" aria-label="Close settings">×</button>
+        </header>
+        <div class="settings-body">
+          <div class="settings-group">
+            <label class="settings-label" for="settingCardColor">Card Background Color</label>
+            <input type="color" id="settingCardColor" class="settings-input-color" value="#ffffff" />
+          </div>
+          <div class="settings-group">
+            <label class="settings-label" for="settingFontColor">Font Color</label>
+            <input type="color" id="settingFontColor" class="settings-input-color" value="#0a0a0f" />
+          </div>
+          <div class="settings-group">
+            <label class="settings-label" for="settingBtnBg">Button Color</label>
+            <input type="color" id="settingBtnBg" class="settings-input-color" value="#ffffff" />
+          </div>
+          <div class="settings-group">
+            <label class="settings-label" for="settingBtnText">Button Font Color</label>
+            <input type="color" id="settingBtnText" class="settings-input-color" value="#101620" />
+          </div>
+          <div class="settings-group">
+            <label class="settings-label" for="settingBgDesktop">Background Image (Desktop)</label>
+            <input type="file" id="settingBgDesktop" class="settings-input-file" accept="image/*" />
+          </div>
+          <div class="settings-group">
+            <label class="settings-label" for="settingBgMobile">Background Image (Mobile)</label>
+            <input type="file" id="settingBgMobile" class="settings-input-file" accept="image/*" />
+          </div>
+          <div class="settings-group">
+            <label class="settings-label" for="settingHabitBg">Habit Tracker Background</label>
+            <input type="color" id="settingHabitBg" class="settings-input-color" value="#ffffff" />
+          </div>
+          <div class="settings-group">
+            <label class="settings-label" for="settingHabitFont">Habit Tracker Font Color</label>
+            <input type="color" id="settingHabitFont" class="settings-input-color" value="#0a0a0f" />
+          </div>
+          <div class="settings-actions">
+            <button type="button" class="btn btn--reset" id="resetSettings">Reset to Default</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script src="app.js"></script>
