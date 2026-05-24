@@ -35,6 +35,7 @@
             autocomplete="off"
           />
           <button type="button" class="btn btn--go" id="goWeek">Go</button>
+          <button type="button" class="btn btn--nav" id="openMoreBtn">More</button>
           <button type="button" class="btn btn--nav" id="openSettings" title="Settings">⋮</button>
         </div>
       </header>
@@ -116,8 +117,140 @@
             <label class="settings-label" for="settingHabitFont">Habit Tracker Font Color</label>
             <input type="color" id="settingHabitFont" class="settings-input-color" value="#0a0a0f" />
           </div>
+          <div class="settings-group">
+            <label class="settings-label" for="settingCardTransparency">Card Transparency</label>
+            <div class="settings-slider-wrap">
+              <input type="range" id="settingCardTransparency" class="settings-slider" min="0" max="100" value="100" />
+              <span class="slider-value" id="settingCardTransparencyValue">100%</span>
+            </div>
+          </div>
+          <div class="settings-group">
+            <label class="settings-label" for="settingGlassTransparency">Glass Surface Transparency</label>
+            <div class="settings-slider-wrap">
+              <input type="range" id="settingGlassTransparency" class="settings-slider" min="0" max="100" value="100" />
+              <span class="slider-value" id="settingGlassTransparencyValue">100%</span>
+            </div>
+          </div>
+          <div class="settings-group">
+            <label class="settings-label" for="settingBtnTransparency">Button Transparency</label>
+            <div class="settings-slider-wrap">
+              <input type="range" id="settingBtnTransparency" class="settings-slider" min="0" max="100" value="100" />
+              <span class="slider-value" id="settingBtnTransparencyValue">100%</span>
+            </div>
+          </div>
+          <div class="settings-group">
+            <label class="settings-label" for="settingNoteTransparency">Note Area Transparency</label>
+            <div class="settings-slider-wrap">
+              <input type="range" id="settingNoteTransparency" class="settings-slider" min="0" max="100" value="100" />
+              <span class="slider-value" id="settingNoteTransparencyValue">100%</span>
+            </div>
+          </div>
           <div class="settings-actions">
+            <button type="button" class="btn btn--export" id="exportDataBtn">Export Data</button>
+            <button type="button" class="btn btn--import" id="importDataBtn">Import Data</button>
             <button type="button" class="btn btn--reset" id="resetSettings">Reset to Default</button>
+            <input type="file" id="importFileInput" class="sr-only" accept=".json,.txt" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-modal" id="moreModal" aria-hidden="true">
+      <div class="settings-panel" role="dialog" aria-labelledby="moreTitle">
+        <header class="settings-header">
+          <h2 class="settings-title" id="moreTitle">My Interests</h2>
+          <button type="button" class="settings-close" id="closeMoreBtn" aria-label="Close">×</button>
+        </header>
+        <div class="settings-body more-cards">
+          <div class="glass-card interest-card" id="openGamesBtn">
+            <h3>Games</h3>
+          </div>
+          <div class="glass-card interest-card" id="openMoviesBtn">
+            <h3>Movies</h3>
+          </div>
+          <div class="glass-card interest-card" id="openBooksBtn">
+            <h3>Books</h3>
+          </div>
+          
+          <div id="customInterestsGrid" style="display: contents;"></div>
+
+          <div class="glass-card interest-card" id="addInterestBtn">
+            <h3>+ Add more</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="view-overlay" id="mediaView" aria-hidden="true">
+      <div class="view-content">
+        <header class="view-header">
+          <h2 class="view-title" id="mediaViewTitle">My Media</h2>
+          <div class="view-header__controls">
+            <button type="button" class="btn--settings" id="openMediaSettingsBtn" title="Settings">⋮</button>
+            <button type="button" class="btn btn--nav" id="closeMediaBtn">Close</button>
+          </div>
+        </header>
+        <div class="media-grid" id="mediaGrid">
+          <!-- JS will populate cards here -->
+          <div class="media-card media-card--add" id="addMediaBtn" role="button" tabindex="0">
+            <h3>Add more</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Media/Game Settings Modal -->
+    <div class="settings-modal" id="mediaSettingsModal" aria-hidden="true">
+      <div class="settings-panel" role="dialog" aria-labelledby="mediaSettingsTitle">
+        <header class="settings-header">
+          <h2 class="settings-title" id="mediaSettingsTitle">Game Settings</h2>
+          <button type="button" class="settings-close" id="closeMediaSettingsBtn" aria-label="Close settings">×</button>
+        </header>
+        <div class="settings-body">
+          <div class="settings-group">
+            <label class="settings-label" for="mediaCardBgColor">Card Background Color</label>
+            <input type="color" id="mediaCardBgColor" class="settings-input-color" value="#242424" />
+          </div>
+          <div class="settings-group">
+            <label class="settings-label" for="mediaCardBgOpacity">Card Transparency</label>
+            <div class="settings-slider-wrap">
+              <input type="range" id="mediaCardBgOpacity" class="settings-slider" min="0" max="100" value="100" />
+              <span class="slider-value" id="mediaCardBgOpacityValue">100%</span>
+            </div>
+          </div>
+          <div class="settings-group">
+            <label class="settings-label" for="mediaHeaderBgColor">Header Background Color</label>
+            <input type="color" id="mediaHeaderBgColor" class="settings-input-color" value="#000000" />
+          </div>
+          <div class="settings-group">
+            <label class="settings-label" for="mediaHeaderTextColor">Header Text Color</label>
+            <input type="color" id="mediaHeaderTextColor" class="settings-input-color" value="#ffffff" />
+          </div>
+          <div class="settings-group">
+            <label class="settings-label" for="mediaCardTextColor">Card Text Color</label>
+            <input type="color" id="mediaCardTextColor" class="settings-input-color" value="#ffffff" />
+          </div>
+          <div class="settings-group">
+            <label class="settings-label" for="mediaCardBorderColor">Card Border Color</label>
+            <input type="color" id="mediaCardBorderColor" class="settings-input-color" value="#404040" />
+          </div>
+          <div class="settings-group">
+            <label class="settings-label" for="mediaCardBorderWidth">Card Border Width (px)</label>
+            <input type="number" id="mediaCardBorderWidth" class="settings-input-number" min="0" max="10" value="2" />
+          </div>
+          <div class="settings-group">
+            <label class="settings-label" for="mediaCardBorderRadius">Card Border Radius (px)</label>
+            <input type="number" id="mediaCardBorderRadius" class="settings-input-number" min="0" max="50" value="28" />
+          </div>
+          <div class="settings-group">
+            <label class="settings-label" for="mediaCardShadow">Card Shadow Intensity</label>
+            <div class="settings-slider-wrap">
+              <input type="range" id="mediaCardShadow" class="settings-slider" min="0" max="100" value="80" />
+              <span class="slider-value" id="mediaCardShadowValue">80%</span>
+            </div>
+          </div>
+          <div class="settings-actions">
+            <button type="button" class="btn btn--reset" id="resetMediaSettings">Reset to Default</button>
           </div>
         </div>
       </div>
